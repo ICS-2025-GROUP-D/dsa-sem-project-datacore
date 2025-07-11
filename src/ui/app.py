@@ -10,7 +10,7 @@ from src.data_structures.hash_table import PatientHashTable, Patient
 from src.data_structures.queue import WaitingQueue
 from src.data_structures.stack import Undo
 from src.data_structures.heap import EmergencyHeap
-from src.data_structures.linkedlist import HospitalLinkedList
+from src.data_structures.hospital_linkedlist import HospitalLinkedList
 
 bst = PatientBST()
 hash_table = PatientHashTable()
