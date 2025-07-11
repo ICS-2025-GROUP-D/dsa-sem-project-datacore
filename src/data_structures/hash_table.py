@@ -1,9 +1,16 @@
+class Patient:
+    def __init__(self, pid, name, age, illness):
+        self.id = pid
+        self.name = name
+        self.age = age
+        self.illness = illness
+
 class PatientHashTable:
     def __init__(self):
         self.table = {}
 
     def insert(self, patient):
-        self.table[patient['id']] = patient
+        self.table[patient.id] = patient
 
     def get(self, pid):
         return self.table.get(pid)
