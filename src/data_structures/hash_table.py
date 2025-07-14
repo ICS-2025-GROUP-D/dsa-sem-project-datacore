@@ -11,3 +11,8 @@ class PatientHashTable:
 
     def get(self, patient_id):
         return self.table.get(patient_id)
+
+class PatientHashTable:
+    pass
+class Patient:
+    pass

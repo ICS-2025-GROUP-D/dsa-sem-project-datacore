@@ -10,3 +10,10 @@ class Undo:
 
     def is_empty(self):
         return len(self.stack) == 0
+
+
+class Patient:
+    pass
+
+class Stack:
+    pass
