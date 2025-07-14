@@ -1,7 +1,7 @@
 import sqlite3
 from src.data_structures.patient import Patient
 
-DB_NAME = "hospital.db"
+DB_NAME = "hospital-system.db"
 
 
 def init_db():
