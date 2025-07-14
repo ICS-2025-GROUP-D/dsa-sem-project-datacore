@@ -1,3 +1,10 @@
+class Patient:
+    def __init__(self, id, name, age, illness):
+        self.id = id
+        self.name = name
+        self.age = age
+        self.illness = illness
+
 class PatientHashTable:
     def __init__(self):
         self.table = {}
@@ -11,8 +18,3 @@ class PatientHashTable:
 
     def get(self, patient_id):
         return self.table.get(patient_id)
-
-class PatientHashTable:
-    pass
-class Patient:
-    pass
