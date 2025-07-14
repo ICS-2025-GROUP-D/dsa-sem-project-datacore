@@ -20,6 +20,23 @@ heap = EmergencyHeap()
 linked_list = HospitalLinkedList()
 
 init_db()
+# Load existing patients from DB into BST and Hash Table
+import sqlite3
+
+def preload_patients():
+    try:
+        conn = sqlite3.connect('hospital.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, age, illness FROM patients")
+        for pid, name, age, illness in cursor.fetchall():
+            patient = {'id': pid, 'name': name, 'age': age, 'illness': illness}
+            bst.insert(patient)
+            hash_table.insert(Patient(pid, name, age, illness))
+        conn.close()
+    except Exception as e:
+        print("Failed to preload patients:", e)
+
+preload_patients()
 
 # GUI logic
 def add_patient():
@@ -36,7 +53,7 @@ def add_patient():
         queue.enqueue(Patient(pid, name, age, illness))
         linked_list.add_visit(pid, f"Visit for {illness}")
         insert_visit(pid, f"Visit for {illness}")
-        undo.push(('add', patient))
+        undo.add_info('add', patient)
 
         messagebox.showinfo("Success", f"Patient {name} added.")
     except Exception as e:
@@ -64,7 +81,7 @@ def delete_patient():
         if patient:
             bst.delete(pid)
             delete_patient_from_db(pid)
-            undo.push(('delete', patient))
+            undo.add_info('delete', patient)
             messagebox.showinfo("Deleted", f"Patient with ID {pid} deleted.")
         else:
             messagebox.showwarning("Not Found", "Patient not found.")
@@ -87,6 +104,7 @@ def update_patient():
             hash_table.insert(Patient(pid, name, age, illness))
             linked_list.add_visit(pid, f"Update visit - {illness}")
             insert_visit(pid, f"Update visit - {illness}")
+            undo.add_info('update', existing)  # optional: track old info for undo
             messagebox.showinfo("Updated", f"Patient ID {pid} updated.")
         else:
             messagebox.showwarning("Not Found", "Patient not found to update.")
@@ -95,13 +113,21 @@ def update_patient():
 
 def undo_last_action():
     try:
-        action, patient = undo.pop()
+        if undo.undo_stack.is_empty():
+            messagebox.showinfo("Undo", "No actions to undo.")
+            return
+
+        action, patient = undo.undo_stack.pop()
         if action == 'add':
             bst.delete(patient['id'])
             delete_patient_from_db(patient['id'])
         elif action == 'delete':
             bst.insert(patient)
             insert_patient(patient['id'], patient['name'], patient['age'], patient['illness'])
+        elif action == 'update':
+            bst.delete(patient['id'])
+            bst.insert(patient)
+            update_patient_in_db(patient['id'], patient['name'], patient['age'], patient['illness'])
         messagebox.showinfo("Undo", f"Undid last action: {action} patient {patient['name']}")
     except Exception as e:
         messagebox.showerror("Error", str(e))
