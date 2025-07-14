@@ -1,5 +1,6 @@
 import pytest
-from patient_hashtable import Patient, PatientHashTable
+from src.data_structures.hash_table import Patient, PatientHashTable
+
 
 @pytest.fixture
 def hashtable():
