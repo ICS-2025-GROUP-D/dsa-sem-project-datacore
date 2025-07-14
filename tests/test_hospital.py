@@ -1,42 +1,23 @@
-# tests/test_hospital.py
-
 import unittest
-from src.data_structures.linkedlist import HospitalLinkedList
+from models.patient import Patient
+from data_structures.hospital_linkedlist import HospitalLinkedList
 
-
-class TestHospitalLinkedList(unittest.TestCase):
+class TestLinkedList(unittest.TestCase):
     def setUp(self):
-        self.hospital = HospitalLinkedList()
-        self.hospital.add_patient("P001", "Alice", 30, "Flu")
-        self.hospital.add_patient("P002", "Bob", 45, "Malaria")
+        self.ll = HospitalLinkedList()
+        self.p1 = Patient(1, "Alice", 30, "Flu", 2)
+        self.p2 = Patient(2, "Bob", 25, "Cold", 1)
 
-    def test_add_patient(self):
-        self.hospital.add_patient("P003", "Charlie", 50, "Injury")
-        patients = self.hospital.get_all_patients()
-        self.assertEqual(len(patients), 3)
-        self.assertEqual(patients[2]['name'], "Charlie")
+    def test_append_and_find(self):
+        self.ll.append(self.p1)
+        self.ll.append(self.p2)
+        self.assertEqual(self.ll.find(1).name, "Alice")
+        self.assertEqual(self.ll.find(2).name, "Bob")
 
-    def test_get_all_patients(self):
-        patients = self.hospital.get_all_patients()
-        self.assertEqual(len(patients), 2)
-        self.assertEqual(patients[0]['id'], "P001")
-
-    def test_update_patient(self):
-        updated = self.hospital.update_patient("P002", name="Bobby", illness="Cold")
-        self.assertTrue(updated)
-        patients = self.hospital.get_all_patients()
-        self.assertEqual(patients[1]['name'], "Bobby")
-
-    def test_delete_patient(self):
-        deleted = self.hospital.delete_patient("P001")
-        self.assertTrue(deleted)
-        patients = self.hospital.get_all_patients()
-        self.assertEqual(len(patients), 1)
-        self.assertEqual(patients[0]['id'], "P002")
-
-    def test_delete_nonexistent(self):
-        deleted = self.hospital.delete_patient("P999")
-        self.assertFalse(deleted)
+    def test_delete(self):
+        self.ll.append(self.p1)
+        self.ll.delete(1)
+        self.assertIsNone(self.ll.find(1))
 
 if __name__ == '__main__':
     unittest.main()
