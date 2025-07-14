@@ -1,6 +1,6 @@
 import unittest
-from models.patient import Patient
-from data_structures.hospital_linkedlist import HospitalLinkedList
+from src.data_structures.patient import Patient
+from src.data_structures.hospital_linkedlist import HospitalLinkedList
 
 class TestLinkedList(unittest.TestCase):
     def setUp(self):
