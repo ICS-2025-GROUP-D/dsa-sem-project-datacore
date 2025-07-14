@@ -2,7 +2,7 @@ import pytest
 from io import StringIO
 import sys
 
-from src.data_structures.stack import Patient, Stack, Undo
+from undo_stack import Patient, Stack, Undo
 
 
 @pytest.fixture
