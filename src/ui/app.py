@@ -1,183 +1,165 @@
+# app.py
+
 import tkinter as tk
 from tkinter import messagebox
-from src.db.db import (
-    insert_patient, delete_patient_from_db, update_patient_in_db,
-    get_patient_from_db, init_db, insert_visit, get_visits,
-    insert_emergency, get_next_emergency
-)
-from src.data_structures.bst import PatientBST
-from src.data_structures.hash_table import PatientHashTable, Patient
-from src.data_structures.queue import WaitingQueue
-from src.data_structures.stack import Undo
-from src.data_structures.heap import EmergencyHeap
+from datetime import datetime
+from src.data_structures.patient import Patient
 from src.data_structures.linkedlist import HospitalLinkedList
+import src.db.db as db
 
-bst = PatientBST()
-hash_table = PatientHashTable()
-queue = WaitingQueue()
-undo = Undo()
-heap = EmergencyHeap()
+db.init_db()
 linked_list = HospitalLinkedList()
 
-init_db()
-# Load existing patients from DB into BST and Hash Table
-import sqlite3
+def refresh_display():
+    output_listbox.delete(0, tk.END)
+    for patient in linked_list.to_list():
+        output_listbox.insert(tk.END, f"ID: {patient.id}, Name: {patient.name}, Age: {patient.age}, Illness: {patient.illness}, Level: {patient.emergency_level}")
 
-def preload_patients():
-    try:
-        conn = sqlite3.connect('hospital.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, name, age, illness FROM patients")
-        for pid, name, age, illness in cursor.fetchall():
-            patient = {'id': pid, 'name': name, 'age': age, 'illness': illness}
-            bst.insert(patient)
-            hash_table.insert(Patient(pid, name, age, illness))
-        conn.close()
-    except Exception as e:
-        print("Failed to preload patients:", e)
-
-preload_patients()
-
-# GUI logic
 def add_patient():
     try:
-        pid = int(entry_id.get())
-        name = entry_name.get()
-        age = int(entry_age.get())
-        illness = entry_illness.get()
+        id_val = int(id_entry.get())
+        name_val = name_entry.get()
+        age_val = int(age_entry.get())
+        illness_val = illness_entry.get()
+        level_val = int(level_entry.get())
 
-        patient = {'id': pid, 'name': name, 'age': age, 'illness': illness}
-        bst.insert(patient)
-        insert_patient(pid, name, age, illness)
-        hash_table.insert(Patient(pid, name, age, illness))
-        queue.enqueue(Patient(pid, name, age, illness))
-        linked_list.add_visit(pid, f"Visit for {illness}")
-        insert_visit(pid, f"Visit for {illness}")
-        undo.add_info('add', patient)
+        if not name_val or not illness_val:
+            raise ValueError("All fields must be filled.")
 
-        messagebox.showinfo("Success", f"Patient {name} added.")
-    except Exception as e:
-        messagebox.showerror("Error", str(e))
+        if level_val not in (1, 2, 3):
+            raise ValueError("Emergency level must be between 1 and 3.")
 
-def search_patient():
-    try:
-        pid = int(entry_id.get())
-        patient = bst.search(pid)
-        if patient:
-            messagebox.showinfo("Found", f"Name: {patient['name']}, Age: {patient['age']}, Illness: {patient['illness']}")
-        else:
-            row = get_patient_from_db(pid)
-            if row:
-                messagebox.showinfo("Found in DB", f"Name: {row[1]}, Age: {row[2]}, Illness: {row[3]}")
-            else:
-                messagebox.showwarning("Not Found", "No patient with that ID.")
-    except Exception as e:
-        messagebox.showerror("Error", str(e))
+        if linked_list.find(id_val):
+            raise ValueError("Patient ID already exists.")
 
-def delete_patient():
-    try:
-        pid = int(entry_id.get())
-        patient = bst.search(pid)
-        if patient:
-            bst.delete(pid)
-            delete_patient_from_db(pid)
-            undo.add_info('delete', patient)
-            messagebox.showinfo("Deleted", f"Patient with ID {pid} deleted.")
-        else:
-            messagebox.showwarning("Not Found", "Patient not found.")
+        patient = Patient(id_val, name_val, age_val, illness_val, level_val)
+        linked_list.append(patient)
+        db.insert_patient(patient)
+        refresh_display()
     except Exception as e:
         messagebox.showerror("Error", str(e))
 
 def update_patient():
     try:
-        pid = int(entry_id.get())
-        name = entry_name.get()
-        age = int(entry_age.get())
-        illness = entry_illness.get()
+        id_val = int(id_entry.get())
+        name_val = name_entry.get()
+        age_val = int(age_entry.get())
+        illness_val = illness_entry.get()
+        level_val = int(level_entry.get())
 
-        existing = bst.search(pid)
-        if existing:
-            bst.delete(pid)
-            patient = {'id': pid, 'name': name, 'age': age, 'illness': illness}
-            bst.insert(patient)
-            update_patient_in_db(pid, name, age, illness)
-            hash_table.insert(Patient(pid, name, age, illness))
-            linked_list.add_visit(pid, f"Update visit - {illness}")
-            insert_visit(pid, f"Update visit - {illness}")
-            undo.add_info('update', existing)  # optional: track old info for undo
-            messagebox.showinfo("Updated", f"Patient ID {pid} updated.")
-        else:
-            messagebox.showwarning("Not Found", "Patient not found to update.")
+        if not name_val or not illness_val:
+            raise ValueError("All fields must be filled.")
+
+        patient = Patient(id_val, name_val, age_val, illness_val, level_val)
+        if not linked_list.update(patient):
+            raise ValueError("Patient not found.")
+        db.update_patient(patient)
+        refresh_display()
     except Exception as e:
         messagebox.showerror("Error", str(e))
 
-def undo_last_action():
+def delete_patient():
     try:
-        if undo.undo_stack.is_empty():
-            messagebox.showinfo("Undo", "No actions to undo.")
-            return
-
-        action, patient = undo.undo_stack.pop()
-        if action == 'add':
-            bst.delete(patient['id'])
-            delete_patient_from_db(patient['id'])
-        elif action == 'delete':
-            bst.insert(patient)
-            insert_patient(patient['id'], patient['name'], patient['age'], patient['illness'])
-        elif action == 'update':
-            bst.delete(patient['id'])
-            bst.insert(patient)
-            update_patient_in_db(patient['id'], patient['name'], patient['age'], patient['illness'])
-        messagebox.showinfo("Undo", f"Undid last action: {action} patient {patient['name']}")
+        id_val = int(id_entry.get())
+        if not linked_list.delete(id_val):
+            raise ValueError("Patient not found.")
+        db.delete_patient(id_val)
+        refresh_display()
     except Exception as e:
         messagebox.showerror("Error", str(e))
 
-def treat_next_emergency():
+def treat_patient():
     try:
-        emergency = get_next_emergency()
-        if emergency:
-            messagebox.showinfo("Treated", f"Emergency patient treated: {emergency[1]} (ID: {emergency[0]})")
-        else:
-            messagebox.showinfo("No Emergency", "No emergency patients to treat.")
+        id_val = int(id_entry.get())
+        patient = linked_list.find(id_val)
+        if not patient:
+            raise ValueError("Patient not found.")
+        visit_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        notes = f"Treated for {patient.illness}"
+        db.insert_visit(id_val, visit_date, notes)
+        messagebox.showinfo("Success", "Treatment recorded.")
     except Exception as e:
         messagebox.showerror("Error", str(e))
 
-def view_visit_history():
+def add_visit():
     try:
-        pid = int(entry_id.get())
-        history = get_visits(pid)
-        if history:
-            messagebox.showinfo("Visit History", "\n".join([v[0] for v in history]))
-        else:
-            messagebox.showinfo("Visit History", "No visits found.")
+        id_val = int(id_entry.get())
+        notes = visit_entry.get()
+        if not notes:
+            raise ValueError("Visit notes cannot be empty.")
+        if not db.get_patient_by_id(id_val):
+            raise ValueError("Patient not found.")
+        visit_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        db.insert_visit(id_val, visit_date, notes)
+        messagebox.showinfo("Success", "Visit added.")
     except Exception as e:
         messagebox.showerror("Error", str(e))
 
-# GUI setup
+def show_visits():
+    try:
+        id_val = int(id_entry.get())
+        visits = db.get_visits_by_patient_id(id_val)
+        output_listbox.delete(0, tk.END)
+        for visit in visits:
+            output_listbox.insert(tk.END, f"Date: {visit[0]}, Notes: {visit[1]}")
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+
+def show_treatments():
+    try:
+        patient_id = int(id_entry.get())
+        if not db.get_patient_by_id(patient_id):
+            raise ValueError("Patient not found")
+
+        visits = db.get_visits_by_patient_id(patient_id)
+        treatments = [v for v in visits if "treated for" in v[1].lower()]
+        output_listbox.delete(0, tk.END)
+        for visit in treatments:
+            output_listbox.insert(tk.END, f"Date: {visit[0]}, {visit[1]}")
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+
+# UI Setup
 root = tk.Tk()
 root.title("Hospital Management System")
+root.geometry("950x600")
+root.configure(bg="#f0f2f5")
 
-tk.Label(root, text="Patient ID").grid(row=0, column=0)
-tk.Label(root, text="Name").grid(row=1, column=0)
-tk.Label(root, text="Age").grid(row=2, column=0)
-tk.Label(root, text="Illness").grid(row=3, column=0)
+form_frame = tk.LabelFrame(root, text="Patient Information", padx=10, pady=10, bg="#ffffff", font=("Arial", 10, "bold"))
+form_frame.grid(row=0, column=0, padx=20, pady=10, sticky="nw")
 
-entry_id = tk.Entry(root)
-entry_name = tk.Entry(root)
-entry_age = tk.Entry(root)
-entry_illness = tk.Entry(root)
+labels = ["ID", "Name", "Age", "Illness", "Emergency Level (1-3)", "Visit Notes"]
+entries = []
 
-entry_id.grid(row=0, column=1)
-entry_name.grid(row=1, column=1)
-entry_age.grid(row=2, column=1)
-entry_illness.grid(row=3, column=1)
+for i, label in enumerate(labels):
+    tk.Label(form_frame, text=label, bg="#ffffff").grid(row=i, column=0, sticky="w")
+    entry = tk.Entry(form_frame, width=30)
+    entry.grid(row=i, column=1, pady=2)
+    entries.append(entry)
 
-tk.Button(root, text="Add", command=add_patient).grid(row=4, column=0)
-tk.Button(root, text="Search", command=search_patient).grid(row=4, column=1)
-tk.Button(root, text="Delete", command=delete_patient).grid(row=5, column=0)
-tk.Button(root, text="Update", command=update_patient).grid(row=5, column=1)
-tk.Button(root, text="Undo Last", command=undo_last_action).grid(row=6, column=0)
-tk.Button(root, text="Treat Emergency", command=treat_next_emergency).grid(row=6, column=1)
-tk.Button(root, text="Visit History", command=view_visit_history).grid(row=7, column=0, columnspan=2)
+id_entry, name_entry, age_entry, illness_entry, level_entry, visit_entry = entries
 
+button_frame = tk.LabelFrame(root, text="Actions", padx=10, pady=10, bg="#ffffff", font=("Arial", 10, "bold"))
+button_frame.grid(row=1, column=0, padx=20, pady=10, sticky="nw")
+
+buttons = [
+    ("Add Patient", add_patient),
+    ("Update Patient", update_patient),
+    ("Delete Patient", delete_patient),
+    ("Treat Patient", treat_patient),
+    ("Add Visit", add_visit),
+    ("Current Visits", show_visits),
+    ("Treatment History", show_treatments),
+]
+
+for i, (text, command) in enumerate(buttons):
+    tk.Button(button_frame, text=text, command=command, width=25, bg="#4CAF50", fg="white", font=("Arial", 9)).grid(row=i, column=0, pady=2)
+
+output_frame = tk.LabelFrame(root, text="Output", padx=10, pady=10, bg="#ffffff", font=("Arial", 10, "bold"))
+output_frame.grid(row=0, column=1, rowspan=2, padx=10, pady=10, sticky="ne")
+
+output_listbox = tk.Listbox(output_frame, width=70, height=25, font=("Courier", 10))
+output_listbox.pack()
+
+refresh_display()
 root.mainloop()

@@ -1,11 +1,10 @@
 import sqlite3
 from src.data_structures.patient import Patient
 
-DB_NAME = "hospital-system.db"
-
+DB_NAME = "hospital.db"
 
 def init_db():
-    conn = sqlite3.connect(DB_NAME, timeout=5)
+    conn = sqlite3.connect(DB_NAME)
     try:
         cursor = conn.cursor()
         cursor.execute('''
@@ -17,7 +16,6 @@ def init_db():
                 emergency_level INTEGER NOT NULL
             )
         ''')
-
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS visits (
                 patient_id INTEGER,
@@ -30,20 +28,18 @@ def init_db():
     finally:
         conn.close()
 
-
 def insert_patient(patient):
-    conn = sqlite3.connect(DB_NAME, timeout=5)
+    conn = sqlite3.connect(DB_NAME)
     try:
         cursor = conn.cursor()
         cursor.execute("INSERT INTO patients (id, name, age, illness, emergency_level) VALUES (?, ?, ?, ?, ?)",
-                       (patient.id, patient.name, patient.age, patient.illness, patient.emergency_level))
+                       patient.to_tuple())
         conn.commit()
     finally:
         conn.close()
 
-
 def update_patient(patient):
-    conn = sqlite3.connect(DB_NAME, timeout=5)
+    conn = sqlite3.connect(DB_NAME)
     try:
         cursor = conn.cursor()
         cursor.execute("UPDATE patients SET name=?, age=?, illness=?, emergency_level=? WHERE id=?",
@@ -52,9 +48,8 @@ def update_patient(patient):
     finally:
         conn.close()
 
-
 def delete_patient(patient_id):
-    conn = sqlite3.connect(DB_NAME, timeout=5)
+    conn = sqlite3.connect(DB_NAME)
     try:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM patients WHERE id=?", (patient_id,))
@@ -62,9 +57,8 @@ def delete_patient(patient_id):
     finally:
         conn.close()
 
-
 def get_patient_by_id(patient_id):
-    conn = sqlite3.connect(DB_NAME, timeout=5)
+    conn = sqlite3.connect(DB_NAME)
     try:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM patients WHERE id=?", (patient_id,))
@@ -75,9 +69,8 @@ def get_patient_by_id(patient_id):
     finally:
         conn.close()
 
-
 def insert_visit(patient_id, visit_date, notes):
-    conn = sqlite3.connect(DB_NAME, timeout=5)
+    conn = sqlite3.connect(DB_NAME)
     try:
         cursor = conn.cursor()
         cursor.execute("INSERT INTO visits (patient_id, visit_date, notes) VALUES (?, ?, ?)",
@@ -86,9 +79,8 @@ def insert_visit(patient_id, visit_date, notes):
     finally:
         conn.close()
 
-
 def get_visits_by_patient_id(patient_id):
-    conn = sqlite3.connect(DB_NAME, timeout=5)
+    conn = sqlite3.connect(DB_NAME)
     try:
         cursor = conn.cursor()
         cursor.execute("SELECT visit_date, notes FROM visits WHERE patient_id=? ORDER BY visit_date DESC", (patient_id,))
