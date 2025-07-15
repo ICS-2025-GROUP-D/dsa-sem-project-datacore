@@ -1,6 +1,4 @@
 import pytest
-from io import StringIO
-import sys
 
 from undo_stack import Patient, Stack, Undo
 
