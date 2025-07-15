@@ -126,6 +126,6 @@ Unit tests cover:
 
 * Noela Jepchumba
 
-* Eliud 
+* Eliud Odhiambo
 
 * ICS Group D – Data Structures and Algorithms Semester Project
